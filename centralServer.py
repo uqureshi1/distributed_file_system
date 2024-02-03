@@ -11,11 +11,13 @@ class FileServer:
         self.socket.bind(('127.0.0.1', port))
         self.socket.listen(5)
         self.log = f"centralServerLog-{port}.txt"
-        self.storage_nodes = [[('127.0.0.1', 8000)], [('127.0.0.1', 8001)]]
+        self.storage_nodes = [[('127.0.0.1', 8081)], [('127.0.0.1', 8082)]]
         self.synchronized_clock_offset = None
         print(f"Server listening on port {port}")
 
     def start(self) -> None:
+        """Starts the central server and accepts connection from users"""
+
         try:
             self.synchronize_nodes()
             while True:
@@ -30,6 +32,8 @@ class FileServer:
             exit()
 
     def handle_client(self, conn: Any, addr: str) -> None:
+        """Handles client and transfers client command to storage server"""
+
         try:
             conn.sendall('Enter userId: '.encode())
             userId = conn.recv(1024).decode()
@@ -48,6 +52,8 @@ class FileServer:
             print('Connection disrupted')
 
     def handle_request(self, data: str, userId: str, user_storage_node: str) -> str | Callable:
+        """Validates user request and logs to central server log"""
+
         # Parse the client request and return the response
         splitted_request = data.split()
         command = splitted_request[0]
@@ -69,14 +75,14 @@ class FileServer:
             case 'write':
                 if len(splitted_request) < 3:
                     return 'command Usage: write path\\to\\file data'
-                filePath = splitted_request[1]
-                fileData = ' '.join(splitted_request[2:])
-                return self.request_storage_node(f'{userId}:write:{filePath}:{fileData}', user_storage_node)
+                file_path = splitted_request[1]
+                file_data = ' '.join(splitted_request[2:])
+                return self.request_storage_node(f'{userId}:write:{file_path}:{file_data}', user_storage_node)
             case 'read':
                 if len(splitted_request) != 2:
                     return 'command Usage: read path\\to\\file'
-                filePath = splitted_request[1]
-                return self.request_storage_node(f'{userId}:read:{filePath}', user_storage_node, need_single_server=True)
+                file_path = splitted_request[1]
+                return self.request_storage_node(f'{userId}:read:{file_path}', user_storage_node, need_single_server=True)
             case 'delete':
                 if len(splitted_request) != 2:
                     return 'command Usage: delete path\\to\\file_or_dir'
@@ -86,12 +92,14 @@ class FileServer:
                 if len(splitted_request) != 3:
                     return 'command Usage: rename path\\to\\file_or_dir new_name'
                 path = splitted_request[1]
-                newName = splitted_request[2]
-                return self.request_storage_node(f'{userId}:rename:{path}:{newName}')
+                new_name = splitted_request[2]
+                return self.request_storage_node(f'{userId}:rename:{path}:{new_name}', user_storage_node)
             case other:
                 return 'invalid request'
 
     def request_storage_node(self, message: str, user_storage_node: int, need_single_server: bool = False) -> Any:
+        """Sends request to storage node and recieves response and prints it"""
+
         replicated_storage_nodes = self.storage_nodes[user_storage_node]
         for storage_node in replicated_storage_nodes:
             storage_node_IP, storage_node_port = storage_node
@@ -108,6 +116,8 @@ class FileServer:
         return response
 
     def synchronize_nodes(self) -> None:
+        """Synchronize clocks of storage servers using Berkeley Algorithm"""
+
         node_clocks = []
         for replicated_storage_nodes in self.storage_nodes:
             for storage_node in replicated_storage_nodes:

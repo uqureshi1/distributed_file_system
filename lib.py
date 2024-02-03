@@ -4,6 +4,8 @@ from typing import List, Any
 
 
 def simple_hash(s: str, range_size: int) -> int:
+    """Takes user ID and hashes it to find storage server to write data"""
+
     # Compute the sum of ASCII values of the characters in the string
     ascii_sum = sum(ord(c) for c in s)
     # Take the modulo of the sum with the size of the range
@@ -11,6 +13,8 @@ def simple_hash(s: str, range_size: int) -> int:
 
 
 def logger(filename: str, message: str) -> None:
+    """Performs the logging to files"""
+
     if os.path.exists(filename):
         log_file = open(filename, "a")
         log_file.write(message)
@@ -22,7 +26,9 @@ def logger(filename: str, message: str) -> None:
             log_file.write(message)
 
 
-def berkeley(node_clocks: List) -> Any:
+def berkeley(node_clocks: List[float]) -> Any:
+    """Applies Berkeley Algorithm for Clock Synchronization"""
+
     differences = []
     master_clock = node_clocks[-1]
     for clock in node_clocks:
@@ -34,6 +40,8 @@ def berkeley(node_clocks: List) -> Any:
 
 
 def compute_formatted_time(offset: int) -> str:
+    """Formats time to Year-Month-Day Hour:Min:Sec format"""
+
     current_time = offset + time.time()
     time_struct = time.localtime(current_time)
     formatted_time = time.strftime("%Y-%m-%d %H:%M:%S", time_struct)
