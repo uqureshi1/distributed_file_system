@@ -72,6 +72,8 @@ class StorageServer:
         log_message = f"\n{userId} : {compute_formatted_time(self.synchronized_clock_offset)} : {command} : {user_base_path}"
         logger(self.log, log_message)
         print(splitted_request)
+
+        response = ""
         match command:
             case 'ls':
                 response = self.list_directory_structure(user_base_path)
@@ -91,8 +93,8 @@ class StorageServer:
                 response = self.delete_file(os.path.join(user_base_path, path))
             case 'rename':
                 old_path, new_path = splitted_request[2], splitted_request[3]
-                self.rename_file(os.path.join(user_base_path, old_path),
-                                 os.path.join(user_base_path, new_path))
+                response = self.rename_file(os.path.join(user_base_path, old_path),
+                                            os.path.join(user_base_path, new_path))
             case other:
                 response = 'Invalid Request!'
         client_socket.send(response.encode())
