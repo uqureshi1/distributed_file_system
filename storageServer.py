@@ -4,24 +4,25 @@ from socket import *
 import threading
 import sys
 import time
+from typing import Any
 from lib import logger, compute_formatted_time
 
 
 class StorageServer:
-    def __init__(self, root_dir, host='localhost', port=8000):
+    def __init__(self, root_dir: str, host: str = 'localhost', port: int = 8000) -> None:
         self.root_dir = root_dir
         self.host = host
         self.port = port
-        self.synchronizedClockOffset = None
+        self.synchronized_clock_offset = None
         self.log = f"storageServerLog-{port}.txt"
         self.server_socket = socket(AF_INET, SOCK_STREAM)
         self.server_socket.bind((self.host, self.port))
 
-    def create_root_dir(self):
+    def create_root_dir(self) -> None:
         if not os.path.exists(self.root_dir):
             os.mkdir(self.root_dir)
 
-    def synchronize_clock(self):
+    def synchronize_clock(self) -> None:
         socket, _ = self.server_socket.accept()
         request = socket.recv(1024).decode()
         if request == "synchronize":
@@ -33,10 +34,10 @@ class StorageServer:
             # socket gets closed on the server
             socket, _ = self.server_socket.accept()
             clockOffset = socket.recv(1024).decode()
-            self.synchronizedClockOffset = float(clockOffset)
+            self.synchronized_clock_offset = float(clockOffset)
             socket.close()
 
-    def start(self):
+    def start(self) -> None:
         self.create_root_dir()
         self.server_socket.listen(5)
         print(f'Storage server started on {self.host}:{self.port}')
@@ -51,43 +52,43 @@ class StorageServer:
                                  args=(client_socket,))
             t.start()
 
-    def handle_client(self, client_socket):
+    def handle_client(self, client_socket: Any) -> None:
         request = client_socket.recv(1024).decode()
-        splittedRequest = request.split(':')
-        userId, command = splittedRequest[0], splittedRequest[1]
-        userBasePath = self.get_user_base_path(userId)
+        splitted_request = request.split(':')
+        userId, command = splitted_request[0], splitted_request[1]
+        user_base_path = self.get_user_base_path(userId)
 
         # log request to the server
-        logMessage = f"\n{userId} : {compute_formatted_time(self.synchronizedClockOffset)} : {command} : {userBasePath}"
-        logger(self.log, logMessage)
-        print(splittedRequest)
+        log_message = f"\n{userId} : {compute_formatted_time(self.synchronized_clock_offset)} : {command} : {user_base_path}"
+        logger(self.log, log_message)
+        print(splitted_request)
         match command:
             case 'ls':
-                response = self.list_directory_structure(userBasePath)
+                response = self.list_directory_structure(user_base_path)
             case 'create':
-                type, path = splittedRequest[2], splittedRequest[3]
+                type, path = splitted_request[2], splitted_request[3]
                 response = self.create_file(
-                    type, os.path.join(userBasePath, path))
+                    type, os.path.join(user_base_path, path))
             case 'write':
-                path, data = splittedRequest[2], splittedRequest[3]
+                path, data = splitted_request[2], splitted_request[3]
                 response = self.write_file(
-                    os.path.join(userBasePath, path), data)
+                    os.path.join(user_base_path, path), data)
             case 'read':
-                path = splittedRequest[2]
-                response = self.read_file(os.path.join(userBasePath, path))
+                path = splitted_request[2]
+                response = self.read_file(os.path.join(user_base_path, path))
             case 'delete':
-                path = splittedRequest[2]
-                response = self.delete_file(os.path.join(userBasePath, path))
+                path = splitted_request[2]
+                response = self.delete_file(os.path.join(user_base_path, path))
             case 'rename':
-                old_path, new_path = splittedRequest[2], splittedRequest[3]
-                self.rename_file(os.path.join(userBasePath, old_path),
-                                 os.path.join(userBasePath, new_path))
+                old_path, new_path = splitted_request[2], splitted_request[3]
+                self.rename_file(os.path.join(user_base_path, old_path),
+                                 os.path.join(user_base_path, new_path))
             case other:
                 response = 'invalid Request'
         client_socket.send(response.encode())
         client_socket.close()
 
-    def create_file(self, type, path):
+    def create_file(self, type: str, path: str) -> str:
         # Create directory
         if type == 'dir':
             try:
@@ -108,7 +109,7 @@ class StorageServer:
         else:
             return 'invalid type'
 
-    def write_file(self, path, data):
+    def write_file(self, path: str, data: Any) -> str:
         try:
             file = open(path, "a")
             file.write(data)
@@ -119,7 +120,7 @@ class StorageServer:
         except:
             return "Error writing to file"
 
-    def read_file(self, path):
+    def read_file(self, path: str) -> str:
         try:
             file = open(path, "r")   # Trying to create a new file or open one
             content = file.read()
@@ -130,7 +131,7 @@ class StorageServer:
         except:
             return "Error reading file"
 
-    def delete_file(self, path):
+    def delete_file(self, path: str) -> str:
         try:
             if os.path.isfile(path):
                 os.remove(path)
@@ -142,7 +143,7 @@ class StorageServer:
         except FileNotFoundError:
             return "File or directory not found"
 
-    def rename_file(self, old_name, new_name):
+    def rename_file(self, old_name: str, new_name: str) -> str:
         try:
             os.rename(old_name, new_name)
             return f'{old_name} changed to {new_name}'
@@ -151,20 +152,20 @@ class StorageServer:
         except:
             return "Error in renaming file"
 
-    def get_user_base_path(self, userId):
-        userBasePath = f'{self.root_dir}\\{userId}_DIR'
-        if not os.path.exists(userBasePath):
-            os.mkdir(userBasePath)
-        return userBasePath
+    def get_user_base_path(self, userId: str) -> str:
+        user_base_path = f'{self.root_dir}\\{userId}_DIR'
+        if not os.path.exists(user_base_path):
+            os.mkdir(user_base_path)
+        return user_base_path
 
-    def list_directory_structure(self, path):
-        outputString = ''
+    def list_directory_structure(self, path: str) -> str:
+        output_string = ''
         for root, dirs, files in os.walk(path):
             for name in files:
-                outputString += os.path.join(root, name) + '\n'
+                output_string += os.path.join(root, name) + '\n'
             for name in dirs:
-                outputString += os.path.join(root, name) + '\n'
-        return outputString if outputString != '' else 'no files or directories'
+                output_string += os.path.join(root, name) + '\n'
+        return output_string if output_string != '' else 'no files or directories'
 
 
 if __name__ == '__main__':
